@@ -1,0 +1,3 @@
+# Common anchor (STEWARD D-005), not a baseline: shared ResNet-18 + linear head trained on MRI alone.
+# No method-specific hyperparameters; everything comes from the protocol (backbone, head, loss, training).
+method: mri_only

@@ -1,0 +1,23 @@
+AAL3 atlas notice (STEWARD D-037; written 2026-11-20 for prompt P1b)
+
+Atlas: AAL3v1 (Automated Anatomical Labelling atlas 3), 1 mm label volume AAL3v1_1mm.nii.gz and label table
+AAL3v1_1mm.nii.txt, taken from the official package AAL3v2_for_SPM12.tar.gz of the Neurofunctional Imaging
+Group (GIN-IMN, Bordeaux): https://www.gin.cnrs.fr/en/tools/aal/ (downloaded 2026-11-20; SHA-256 in
+analysis/agmd_atlas/SHA256SUMS.txt).
+
+Terms of use, as stated by the provider:
+- AAL3 User Guide (AAL3_UserGuide_April2024.pdf, page 1): AAL3 "is available to the scientific community as
+  copyright freeware under the terms of the GNU General Public License."
+- The same page says AAL 3v2 (5 April 2024) only adds the operating licence "GNU General Public Licence" in the
+  readme, and that the atlas files themselves are unchanged and still named AAL3v1.
+- The downloaded archive does not contain that readme; the GIN page states GNU GPL in a readme that the
+  archive does not contain. The user guide is therefore the only licence statement we have read.
+
+Required citation (user guide, page 5, "References"):
+  Rolls, E.T., Huang, C.C., Lin, C.-P., Feng, J., Joliot, M., 2020. Automated anatomical labelling atlas 3.
+  NeuroImage 206:116189. https://doi.org/10.1016/j.neuroimage.2019.116189
+Original references listed by the user guide (page 5): Tzourio-Mazoyer et al., NeuroImage 15:273-289 (2002);
+Rolls, Joliot & Tzourio-Mazoyer, NeuroImage 122:1-5 (2015).
+
+Atlas files are not redistributed with this code. data/atlas/*.nii.gz is listed in .gitignore; users must
+download AAL3 from the official GIN page and rebuild the resampled atlas (see data/atlas/README.md).

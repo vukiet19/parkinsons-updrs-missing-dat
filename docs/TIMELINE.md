@@ -1,0 +1,22 @@
+# Tiến trình nghiên cứu
+
+**Bắt đầu ngày 30/08/2026.** Câu hỏi hiện tại là dùng MRI để dự đoán điểm vận động MDS-UPDRS III trong bệnh Parkinson khi thiếu DaT lúc suy luận. Với các baseline dùng hai phương thức, cặp MRI–DaT có thể được dùng khi huấn luyện.
+
+Mốc 30/08 do tác giả cung cấp. Tài liệu liên quan sớm nhất tìm thấy được lưu ngày 31/08. Với các paper chỉ còn dấu vết lưu tệp, bảng ghi nhận thời điểm thu thập. Các tên tài liệu ở cột cuối giúp tra lại bằng chứng trong hồ sơ nghiên cứu.
+
+| Thời gian | Công việc | Kết quả | Bằng chứng |
+| --- | --- | --- | --- |
+| 30/08–01/09 | Khởi động khảo sát học đa phương thức khi thiếu dữ liệu. Lưu paper MUST, đọc *How to Read a Paper* và đọc lướt UniME. | Có nhóm tài liệu mở đầu và danh sách kiến thức cần bổ sung. | Bản PDF MUST lưu 31/08 và nhật ký Obsidian `1st Sep 26.md`. |
+| 01–11/10 | Thu thập các bài dự báo tiến triển Parkinson. Ghi chú về UniME, self-supervised learning và điều kiện thiếu phương thức. | Thu hẹp câu hỏi về dự đoán chỉ số lâm sàng khi thiếu một nguồn ảnh. | Các PDF *Conditional Neural ODE for Longitudinal Parkinson’s Disease Progression Forecasting*, *Predicting Parkinson’s Disease Trajectory using Clinical and Neuroimaging Baseline Measures*, ghi chú SSL/UniME và báo cáo 11/10. |
+| 13–18/10 | Chuẩn bị dữ liệu NTUA 2D, đối chiếu ảnh MRI, DaT và bảng điểm UPDRS III. | Xác định đầu vào và đích dự đoán. Loại các bản ghi thiếu nhãn trong bước chuẩn bị. | Hướng dẫn chuẩn bị NTUA, script `step3_read_csv_and_png.py` và báo cáo 18/10. |
+| 23–25/10 | Thiết kế các mốc hồi quy Ridge/MLP, teacher MRI+DaT và student MRI. So sánh cách chuẩn bị ảnh cho NTUA. | Đưa lựa chọn mô hình vào tập huấn luyện và validation. Dùng cross-fitting cho dự đoán của teacher trong thử nghiệm Ridge-KD. | Kế hoạch `2026-10-23-updrs-teacher.md`, `2026-10-25-ridge-kd.md` và báo cáo 25/10. |
+| 10/11 | Đưa KD0 và KD1 lên Git. KD0 dùng distillation ở đầu ra. KD1 thêm các thành phần lấy từ CRAD. | Có hai baseline ResNet-18 2D trên 15 bệnh nhân, với ba fold theo bệnh nhân và 5 ca test mỗi fold. | Commit `56b58e6` ngày 10/11 ở kho tham chiếu và [hướng dẫn NTUA](../benchmarks/ntua_2d/README.md). |
+| 11–18/11 | Mở rộng tổng quan missing modality và KD. Lập danh mục tài liệu cho CRAD, CReg-KD, DFTD, AGMD, ShaSpec và M3ID. | Danh sách đọc gồm 18 paper. Chốt bộ baseline triển khai, các mốc so sánh và quy tắc thích nghi cho hồi quy UPDRS III. | Danh sách đọc 15/11, kiểm toán Steward 17/11 và sổ quyết định D-001 đến D-016. |
+| 18–20/11 | Chuyển benchmark sang ảnh PPMI 3D dùng MedicalNet ResNet-18. Đối chiếu nhãn OFF, lưới ảnh, atlas và cách chia fold. | Thống nhất lưới 2 mm, năm fold theo bệnh nhân và cách chuẩn hóa nhãn bằng thống kê của tập train trong từng fold. | Hồ sơ chuyển PPMI 3D và quyết định D-017 đến D-038. |
+| 21/11 | Chạy pilot PPMI 25 ca, với riêng AGMD dùng 22 ca phù hợp atlas. Huấn luyện lại thêm một lượt bỏ chuẩn hóa cường độ ảnh. | Chấm đủ năm fold cho mỗi phương pháp ở mỗi điều kiện. Kiểm thử đường suy luận MRI-only. Pilot này được thay bằng bộ OFF30. | Quyết định D-049 đến D-056 và báo cáo kiểm tra DFTD, AGMD. |
+| 21–22/11 | Tích hợp PPMI-OFF30, phát hành manifest và dùng MoCA cho CAFR của CRAD. Áp dụng cùng cohort cho AGMD và các baseline khác. | Có 30 cặp ảnh cùng lưới, nhãn OFF, MoCA và 33 mục MDS-UPDRS III. Mỗi fold có 17 ca train, 7 validation và 6 test. | Handoff Shared OFF30, hồ sơ atlas AGMD, quyết định D-055, D-057 và D-058. |
+| 22/11 | Train riêng trên hai bản OFF30 có và bỏ chuẩn hóa cường độ MRI và DaT. Giữ đăng ký và mask, chọn epoch theo MAE validation. | Hoàn thành 80 lượt fold. Bỏ chuẩn hóa làm tăng MAE ở 7 trong 8 cấu hình so sánh, tính cả mốc MRI+DaT. Bảng ghi MAE, RMSE và R² trên dự đoán ngoài fold. | Báo cáo `Baseline Infer.md` và bảng đối chiếu pilot D-059. |
+| 22/11 | Giữ MRI đã z-score và DaT đã đăng ký rigid cố định. So sánh DaT trước và sau chia theo trung bình vùng chẩm. | Hoàn thành 80 lượt fold. MAE của mốc MRI+DaT giảm từ 10,958 xuống 8,784 điểm sau chuẩn hóa. Ảnh DaT rigid của lượt này còn chờ QC trực quan riêng. | Bảng đối chiếu pilot DaT rigid D-060 và báo cáo 22/11. |
+| 24/11 | Tách kho nghiên cứu độc lập theo hai benchmark và chuẩn hóa hướng dẫn chạy. | Có cây thư mục cho NTUA 2D, PPMI 3D và timeline. | [README của kho](../README.md) và commit khởi tạo của kho này. |
+
+Hai pilot OFF30 dùng một seed và ba epoch mỗi giai đoạn. Các kết quả trên ghi lại ảnh hưởng quan sát được trong ngân sách pilot.

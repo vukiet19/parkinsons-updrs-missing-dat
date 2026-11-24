@@ -1,0 +1,74 @@
+## PPMI-OFF30 protocol candidate. Active only after visual QC and manifest publication (D-055).
+name: ppmi_off30_v1
+output_root: runs_ppmi/off30
+
+data:
+  dataset: PPMI-OFF30
+  root: data/ppmi/processed
+  manifest: data/manifests/ppmi_off30.csv
+  qc:
+    candidates: 30
+    visits: [BL, V04, V06, V10]
+    template: data/manifests/ppmi_off30_qc_preview.csv
+  spatial_dims: 3
+  eval_unit: [subject_id, visit_id]
+  cache_in_memory: true
+  split:
+    level: subject
+    folds: [0, 1, 2, 3, 4]      # D-018
+    val_fraction: 0.3           # 17 train / 7 val / 6 test with 30 approved subjects
+    split_seed: 0
+  target:
+    column: updrs3
+    description: "MDS-UPDRS Part III at the paired clinical visit with MoCA, OFF medication state"
+    med_state: "OFF"            # D-026: declared per subject in the manifest (med_state, med_state_source)
+    med_state_column: med_state
+    normalization: zscore_train
+  aux:
+    column: aux_score
+    description: "MoCA at the paired clinical visit, adapting the original CRAD CAFR MMSE auxiliary target"
+    max_value: 30.0
+
+preprocessing:
+  pipeline: "Camacho pipeline MRI affine to PD25 with z-score. DaT resampled in the input image MNI coordinates with occipital-reference scaling."
+  input_size: [97, 115, 97]     # native grid, no resampling
+  affine: [[2, 0, 0, -96], [0, 2, 0, -132], [0, 0, 2, -78], [0, 0, 0, 1]]
+  mri_channels: 1
+  dat_channels: 1
+  intensity: none               # D-017
+  augmentation: none
+
+backbone:
+  name: resnet18
+  pretrained: medicalnet_r18_23dataset   # D-020/D-023: every encoder starts from MedicalNet resnet_18_23dataset.pth
+  weights_path: assets/medicalnet/resnet_18_23dataset.pth   # local, not versioned
+  weights_sha256: 61224f9317fcce873366deb3703183e92cc47325b726b69691b33536244e10f4   # verified before loading
+  shortcut: A                   # D-024: parameter-free shortcut (MedicalNet ResNet-18), stride-32 topology
+
+head:
+  type: linear
+  hidden: 256
+  dropout: 0.0
+
+loss:
+  task_loss: mse
+  huber_delta: 1.0
+
+training:
+  optimizer: adam
+  lr: 1.0e-4
+  weight_decay: 0.0
+  batch_size: 8                 # Verify GPU memory and a singleton last batch before training
+  max_epochs: 150
+  model_selection: val_mae
+  seeds: [0, 1, 2, 3, 4]        # D-011 / D-038: five seeds for the final runs
+  tuning_budget: 8              # D-007 / D-038: 8 configurations per method (anchors: 4, see configs/tuning)
+  save_last_checkpoint: true    # D-013 / D-038: also keep <stage>_last.pt (sensitivity only; best val MAE stays primary)
+  num_workers: 0
+  deterministic: true           # 3D max-pool backward has no deterministic CUDA kernel: runs are not bit-exact
+  device: auto
+
+evaluation:
+  metrics: [mae, rmse, pearson_r, spearman_rho, r2, bias]
+  aggregate: mean_over_rows_of_eval_unit
+  reference: train_mean

@@ -1,0 +1,54 @@
+# CRAD-specific hyperparameters for the PPMI 3D protocol (configs/protocol_ppmi.yaml).
+# OFF30 replaces MMSE with same-visit MoCA for CAFR (D-055).
+# The manifest stores MoCA in [0, 30]; the shared dataset divides it by 30 once.
+# Paper-vs-code resolution rule (notes/CRAD_code_audit.md, section 5):
+#   A  paper explicit + code changes the mechanism   -> paper (main); code = sensitivity run
+#   B  paper ambiguous / formula not runnable        -> code
+#   C  implementation detail, near-equivalent        -> code
+#   D  clear code bug                                 -> fix following the paper's intent, record it
+# Tags: [Paper] [Code] [Proposal] [Assumption]; Cx = row of the audit table.
+#
+# Fit the teacher on OFF30 with CAFR enabled before distilling the student.
+
+method: crad
+report_name: "CRAD†"
+
+teacher:
+  gamma_cafr: 0.8          # gamma_1 (Eq. 5)
+  gamma_ort: 0.8           # gamma_2 (Eq. 5). B: Sec. 4.2 says 1.0, Sec. 4.7 says 0.6 -> [Code configs.py:20]   tune [0.2, 1.0]
+
+cafr:                      # C6 (rule C): all three choices are near-equivalent to Eq. 2 -> [Code]
+  enabled: true            # OFF30 manifest supplies MoCA in aux_score
+  pool_input: pfac         # GAP(M*Z) [Code crad_model.py:158-160] | raw = GAP(Z) [Paper Eq. 2]
+  loss: smooth_l1          # [Code train_test.py:213] | mse [Paper Eq. 2]
+  reduce_layers: sum       # [Code train_test.py:212-214] | mean = 1/K [Paper Eq. 2]
+  layers: [0, 1, 2, 3]     # all four stages [Paper Sec. 4.6, Code configs.py:47]
+
+ort:                       # C1 (rule A): Eq. 3 is label-free [Paper]; code default needs class labels (n/a)
+  enabled: true
+  form: code               # C16 (rule C): code = ort_project_loss2 (crad_model.py:237-244) | paper_sum = 2x
+
+kd:
+  enabled: true            # false -> MRI-only student trained with the task loss only (no teacher)
+  lambda: 0.8              # C10 (rule B, Eq. 8 vs Eq. 13): L_S = L_task + lambda * L_KD [Paper Sec. 4.2]  tune {0.8, 0.4} (D-038)
+  w_attention: 1.25        # lambda*w = 1.0 / 0.8 / 0.8 = zeta / gma / theta of [Code configs.py:19-23]
+  w_output: 1.0
+  w_feature: 1.0
+  attention_layers: [0, 1, 2, 3]
+  attention_distance: smooth_l1   # C7 (rule C) [Code train_test.py:347] | mse [Paper Eq. 10]
+  attention_reduce_layers: sum    # C7 (rule C) [Code train_test.py:346-349] | mean = 1/K [Paper Eq. 10]
+  output_kd: mse           # TASK-BOUND, D-006: KL(N(t,s2) || N(s,s2)) = (t-s)^2 / (2 s2)
+  fd_target: fused         # C3 (rule A): Z^u [Paper Eq. 6, Table A.1] | branches = [m, p] [Code] (sensitivity)
+  fd_divergence: gram_discrepancy  # C4 = Q5 = D-003 (rule B): official formula [Code utils.py:46-51] | kl_softmax_rows (sensitivity)
+  fd_tau: 1.0              # tau [Code utils.py:45]
+
+sdu:
+  enabled: true
+  attention_confidence: cafr   # Layer confidence from the teacher's CAFR outputs
+  output_confidence: true      # S^C (Eq. 11) on L_KD^P and L_KD^U
+  error_scale: 1.0             # TASK-BOUND, D-006: dis = |y_T - y| / error_scale, train-z units; tune {1.0, 0.5} (D-038)
+  psi_mode: per_sample         # C11 = Q4 = D-002 (rule A): per_sample [Paper Sec. 3.4] | batch [Code] (sensitivity)
+  eps: 1.0e-8
+
+student:
+  train_on_samples_without_dat: true   # such samples get the task loss only (KD is masked)

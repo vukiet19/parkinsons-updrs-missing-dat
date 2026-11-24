@@ -1,0 +1,42 @@
+# DFTD-specific hyperparameters only (protocol values live in configs/protocol.yaml).
+# Status: re-implemented from paper (no official code) -> rules B/C ("follow the code") cannot apply.
+# Every paper gap is an [Assumption] with options listed in notes/DFTD_adaptation.md; Px = row of
+# notes/DFTD_code_audit.md section 5 (ambiguity table).
+
+method: dftd
+
+mode: full                  # full | student_only (MRI path of DFTD trained with the task loss only)
+gradient_routing: alg1      # P1: alg1 = parameters updated per formula as listed in Alg. 1 [Paper]
+                            #     joint = Eq. 23 minimised end-to-end (sensitivity)
+
+regions:                    # P4: m split into grid^dims non-overlapping regions (Sec. III-B: 4x4x4)
+  grid_mri: 4               # 2D NTUA: 4x4 = 16 regions on the 14x14 map; 3D: 4x4x4 = 64 [Paper]
+  grid_dat: 4               # DaT: same uniform grid by default -- open decision (DFTD_adaptation.md, D1)
+  weights: learnable_softmax  # P3: omega = N*softmax(theta) [Assumption] | uniform (Table IV Model III)
+
+critic:
+  hidden: [256, 64]         # three FC layers 256-64-1 + ReLU [Paper Sec. IV-C]
+  estimator: jsd_dim        # P2 (rule D on the paper text): Deep InfoMax JSD [45] | paper_literal (unbounded)
+  negatives: other_subject  # P5: fake pairs from other subjects [Assumption] | any (plain shuffle)
+
+weights:                    # Eq. 23: L_total = L_rel + L_spe + L_MIID, all with weight 1 [Paper]
+  rel: 1.0
+  spe: 1.0
+  adv: 1.0                  # inside L_spe (Eq. 14)
+  lit: 1.0                  # inside L_MIID (Eq. 22)
+
+iid:
+  widths: [512, 256, 64]    # S and T hidden widths; last FC -> 1 is the protocol head [Paper Sec. IV-C]
+  fusion: conv1x1           # P6: 1x1 conv over stacked vectors (Eq. 16-17) | linear (dftd_adni reading)
+  lit_depth: 3              # U_LIT: E and D with 3 FC layers, ratio 2 [Paper Sec. IV-C]
+
+kd:
+  alpha: 1.0                # weight of L_Dis^P [Paper Sec. IV-G, best of {0.1, 0.5, 1}]      tune {0.1, 0.5, 1}
+  beta: 0.05                # weight of L_Dis^F [Paper Sec. IV-G, best of {0.01, 0.05, 0.1}]  tune {0.01, 0.05, 0.1}
+  output_kd: mse            # TASK-BOUND [Proposal]: KL(p_s||p_t), K=1 -> (y_s - y_t)^2 on the z scale | l1
+  fd_layers: [1, 2, 3]      # P7: the three hidden FC layers (z = 3) [Assumption]
+  detach_teacher: true      # P8: one-way transfer T -> S in L_P and L_F [Assumption] | false = two-way
+  detach_student_into_teacher: false   # P9: o_i^s enters Fuse_i with gradient (Eq. 17 literal) [Assumption]
+
+stage2:
+  enabled: true             # Alg. 1 lines 13-19; skipped automatically when no training row lacks DaT

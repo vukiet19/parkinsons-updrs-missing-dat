@@ -1,0 +1,4 @@
+# Common anchor (STEWARD D-005), not a baseline: MRI + DaT late fusion (two ResNet-18, GAP-concat, shared head).
+# Uses DaT at test time: an upper reference, not a missing-modality method. Compare with --role_a teacher.
+# No method-specific hyperparameters; everything comes from the protocol.
+method: mm_teacher

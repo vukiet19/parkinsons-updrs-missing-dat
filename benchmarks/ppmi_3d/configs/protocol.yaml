@@ -1,0 +1,69 @@
+# Shared experimental protocol: single source of truth for ALL methods (baselines and ours).
+# Values marked "TBD" are provisional [Assumption] defaults; change them here only.
+# Relative paths are resolved against the project root (the folder containing this configs/ dir).
+
+name: ntua_stand_in_v2          # bump when anything below changes; recorded in every run
+                                # v2: target convention fixed to the OFF medication state (Q6)
+
+data:
+  dataset: NTUA-PD              # stand-in until PPMI is available (target dataset: PPMI)  TBD
+  root: ../../dataset_224_preprocessed        # image root; manifest paths are relative to it
+  manifest: data/manifests/ntua.csv           # one row per image (2D slice or 3D volume)
+  spatial_dims: 2               # 2 = PNG slices (NTUA), 3 = NIfTI volumes (PPMI)
+  eval_unit: [subject_id, visit_id]           # predictions of rows sharing these keys are averaged
+  cache_in_memory: true
+  split:
+    level: subject              # rows of one subject never cross train/val/test
+    folds: [0, 1, 2]            # outer folds taken from manifest column `fold`  (k = 3)  TBD
+    val_fraction: 0.3           # of outer-train SUBJECTS, target-stratified          TBD
+    split_seed: 0               # fixed across methods and training seeds
+  target:
+    column: updrs3
+    description: "MDS-UPDRS Part III, OFF medication state"   # NTUA stand-in: state not recorded
+    med_state: "OFF"            # decided (Q6). Rows whose med_state_column != OFF are dropped;
+    med_state_column: med_state # if the manifest has no such column the state is logged as unknown
+    normalization: zscore_train # mean/std fitted on the training subjects of each fold only
+  aux:                          # auxiliary clinical score used by methods that need one (CRAD: CAFR)
+    column: aux_score
+    description: "MMSE"         # TBD (PPMI: MoCA) -- see notes/CRAD_adaptation.md, decision Q1
+    max_value: 30.0             # aux is divided by this to lie in [0, 1]
+
+preprocessing:
+  pipeline: "NTUA preprocessing_v2 (crop, aspect-preserving resize, pad to 224); no further processing"  # TBD
+  input_size: [224, 224]        # PPMI example: [128, 128, 128]
+  mri_channels: 3               # grayscale MRI replicated to 3 channels (ImageNet stem)
+  dat_channels: 3               # DaT PNGs are RGB display colormaps
+  intensity: imagenet           # imagenet | zscore | minmax
+  augmentation: none
+
+backbone:
+  name: resnet18                # shared, citable; exposes 4 stages (64, 128, 256, 512 channels)
+  pretrained: imagenet          # imagenet (2D only) | none
+  # The same backbone family is used for every modality encoder of every method.
+
+head:
+  type: linear                  # linear -> 1 output  | mlp
+  hidden: 256                   # used only by mlp
+  dropout: 0.0
+
+loss:
+  task_loss: mse                # mse | l1 | huber   (computed on z-scored target)
+  huber_delta: 1.0
+
+training:
+  optimizer: adam
+  lr: 1.0e-4
+  weight_decay: 0.0
+  batch_size: 8
+  max_epochs: 150
+  model_selection: val_mae      # best validation MAE (original units, eval-unit level); test never used
+  seeds: [0, 1, 2]
+  tuning_budget: 0              # N trials per method on validation only (0 = paper defaults)  TBD
+  num_workers: 0
+  deterministic: true
+  device: auto                  # auto | cuda | cpu
+
+evaluation:
+  metrics: [mae, rmse, pearson_r, spearman_rho, r2, bias]
+  aggregate: mean_over_rows_of_eval_unit
+  reference: train_mean         # trivial predictor reported next to every method

@@ -1,0 +1,31 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+.env.*
+
+# Local research data and third-party assets
+/data/
+/dataset_224_preprocessed/
+/benchmarks/ntua_2d/data/
+/benchmarks/ntua_2d/dataset_224_preprocessed/
+/benchmarks/ppmi_3d/data/ppmi/
+/benchmarks/ppmi_3d/data/manifests/
+/benchmarks/ppmi_3d/assets/
+/benchmarks/ppmi_3d/analysis/agmd_atlas/download/
+*.nii
+*.nii.gz
+*.dcm
+*.pt
+*.pth
+*.ckpt
+
+# Generated runs and reports
+runs/
+runs_ppmi/
+runs_smoke/
+comparisons/
+deployment/
+inference_outputs/
+latest_*.json

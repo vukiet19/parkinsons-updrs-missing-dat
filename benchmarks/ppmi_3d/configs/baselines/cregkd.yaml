@@ -1,0 +1,31 @@
+# CReg-KD-specific hyperparameters only (protocol values live in configs/protocol.yaml).
+# Paper: Yang et al., MedIA 89 (2023) 102916. Code: github.com/podismine/CReg-KD @ 9d9d301.
+# Paper-vs-code rule (notes/CREGKD_code_audit.md section 3): A paper | B code | C code | D fix.
+# Tags: [Paper] [Code] [Proposal] [Assumption]; Cx = audit row, Gx = decision in CREGKD_adaptation.md.
+
+method: cregkd
+
+teacher:                   # the only section that influences teacher training (teacher_sections)
+  fusion: late             # G1 [Proposal]: late = MRI enc + DaT enc, GAP-concat, head | early = one enc on MRI(+)DaT
+
+kd:
+  enabled: true            # false -> plain MRI-only ResNet-18 + head, task loss only (paper's "Baseline")
+  lambda_1: 0.8            # output KD weight, Eq. 12 [Paper Table 2, brain age, ResNet-18] (code: 1.0, C6)  tune [0.2, 1.0]
+  lambda_2: 0.8            # hint KD weight,  Eq. 12 [Paper Table 2, brain age, ResNet-18] (code: 0.8)       tune [0.2, 1.0]
+  output_form: mse         # G4 TASK-BOUND [Proposal]: tau^2 KL(p^T||p^S) -> (y_S - y_T)^2 in z-units | l1
+  layers: [0, 1, 2, 3]     # M = 4 stages [Paper Sec. 2.2.2; Code run_student_gkd.py:88-89]
+  reduce_layers: sum       # C4 (rule C): sum over layers [Code context.py:43] | mean ("averaged", Sec. 2.2.2)
+
+gate:                      # Gated distillation, Eq. 8
+  enabled: true            # false -> psi = 1 (ablation, Table 5/7 rows without gating)
+  eta: 1.0                 # G3 TASK-BOUND [Proposal]: dis = |y_T - y| in train-fold SD units; same scale as
+                           # CRAD sdu.error_scale (CRAD's S^C is this gate). tune {0.25, 0.5, 1, 2}
+
+afr:                       # Attentive Feature Refinement, Eq. 10
+  enabled: true            # false -> raw hint distillation (the "*" row of Table 5/7, Gated-KD)
+  form: code               # C3 (rule C): code = depthwise3 -> pointwise1 -> BN [context.py:10-33] | paper = conv3 -> conv1 -> ReLU
+  phi: pow_avg             # [Paper Fig. 4; Code context.py:53, ab=0] | avg_pow | mean | raw
+  teacher_hint: mri        # G2 [Proposal]: mri = teacher MRI-encoder stages | concat = [MRI || DaT] stages
+
+student:
+  train_on_samples_without_dat: true   # such rows get the task loss only (KD masked) [Assumption, as CRAD]

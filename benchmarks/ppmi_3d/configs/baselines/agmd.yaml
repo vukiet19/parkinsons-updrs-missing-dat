@@ -1,0 +1,50 @@
+# AGMD-specific hyperparameters only (protocol values live in configs/protocol.yaml).
+# Paper-vs-code resolution rule (notes/AGMD_code_audit.md, section 5):
+#   A  paper explicit + code changes the mechanism   -> paper (main); code = sensitivity run
+#   B  paper ambiguous / formula not runnable        -> code
+#   C  implementation detail, near-equivalent        -> code
+#   D  clear code bug                                 -> fix following the paper's intent, record it
+# Tags: [Paper] [Code] [Proposal] [Assumption]; Gx = row of the audit table. orig_repo = LiuFei-AHU/AGMD@dc676d9.
+
+method: agmd
+
+cmt:                       # Cross-Modal Attentive Fusion Transformer (teacher only), Sec. 2.2 / Eq. 1
+  layers: [2, 3]           # G3 (rule B): backbone stages 3-4 (0-indexed) [Code model.py:264-269] | Eq. 2 says all K
+  scale: sqrt_c            # G4 (rule A): softmax(QK^T / sqrt(C)) [Paper Eq. 1] | none [Code model.py:138] (sensitivity)
+
+graph:                     # Anatomical-guided graph learning, Sec. 2.3 (teacher AND student, Sec. 2.1)
+  layers: [2, 3]           # last two encoder stages [Paper Sec. 2.3, Code model.py:297]
+  nodes: grid              # G8 [Proposal]: grid (NTUA 2D, not atlas-registered) | atlas (MNI-registered 3D, code scheme)
+  grid: [4, 4]             # blocks per axis for each graph layer (4x4 as DFTD-dagger's region grid) [Assumption]
+  grid_key_size: 2         # key nodes = central 2x2 (2x2x2) blocks of each grid [Assumption]   (M = 4 per layer in 2D)
+  atlas_path: null         # integer label volume (e.g. AAL3 in the PPMI preprocessing space); used when nodes=atlas
+  atlas_key_rois: [75, 76, 77, 78, 79, 80, 161, 162, 163, 164]   # M = 10 [Paper]; PD key ROIs [Proposal]:
+                           # AAL3v1 caudate, putamen, pallidum, SN pars compacta/reticulata (L/R). Verify label table!
+  atlas_include_background: true   # label 0 is a node in the code (utils.py:112) [Code]
+  knn: sqrt_n              # G6 (rule A/D): k = sqrt(N_V) [Paper Sec. 2.3] | code uses ceil(sqrt(batch)) / 20
+  anatomical: true         # G5 (rule D): anatomical edges ARE added (code never adds them, model.py:193-194)
+  gcn_hidden: 64           # [Code model.py:202]
+
+transformer:               # graph transformer G = GraphTransformer(H^{l-1}, H^l), Sec. 2.3
+  nhead: 8                 # [Code model.py:279]
+  num_layers: 4            # [Code model.py:249]
+  dim_feedforward: 2048    # nn.TransformerEncoderLayer default [Code]
+  dropout: 0.1             # nn.TransformerEncoderLayer default [Code]
+  global_dim: 512          # Linear(N*64 -> 512) + ReLU [Code model.py:250]
+  # G7 (rule D): tokens = graph nodes of ONE subject; the code attends across the subjects of a batch.
+
+kd:
+  enabled: true            # false -> MRI-only student with the same architecture, task loss only (code mode 0)
+  w_shallow: 1.0           # lambda_l of Eq. 2 (B: unspecified) -> 1 [Code train_test.py:34-42]   tune [0.1, 1]
+  w_graph: 1.0             # lambda_l of Eq. 7 (B: unspecified) -> 1 [Code train_test.py:44]      tune [0.1, 1]
+  w_global: 1.0            # Eq. 10 has no weight [Paper, Code]                                   tune [0.1, 1]
+  logit: true              # G10 (rule B): code adds a logit-KD term not in Eq. 10 (train_test.py:53-55)
+  w_logit: 1.0             # TASK-BOUND [Proposal]: KL(log-softmax) -> (y_S - y_T)^2 on the z-scale (as CRAD Q2)
+
+uag:                       # Uncertainty-Aware Gating, Sec. 2.4 / Eq. 9-10
+  mode: error              # G11 (rule A + TASK-BOUND): error [Proposal] | feature_entropy [Code] | none (ablation)
+  reduce: per_sample       # G12 (rule A): per_sample [Paper "instance-level"] | batch [Code train_test.py:389-392]
+  error_scale: 1.0         # kappa, train-z units (same default as CRAD sdu.error_scale, Q3)   tune {0.5, 1, 2}
+
+student:
+  train_on_samples_without_dat: true   # such samples get the task loss only (KD is masked) [Assumption, as CRAD]

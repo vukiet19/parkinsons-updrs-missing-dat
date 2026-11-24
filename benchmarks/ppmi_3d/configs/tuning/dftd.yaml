@@ -1,0 +1,10 @@
+# Tuning grid (STEWARD D-007, D-038, D-039). Keys "protocol.*" go to train.py --pset, others to --set.
+# The first value of every key is the current default (config 0 = all defaults). Cartesian product in file order.
+# Validation only (seed 0). Select by primary-role MAE independently within each outer fold.
+# D-008 / D-039: select the gradient flow on validation. Keep kd.beta fixed at 0.05 in the baseline config.
+method: dftd
+config: null                  # null -> configs/baselines/dftd.yaml
+grid:
+  protocol.training.lr: [1.0e-4, 1.0e-3]
+  kd.alpha: [1.0, 0.5]
+  gradient_routing: [alg1, joint]

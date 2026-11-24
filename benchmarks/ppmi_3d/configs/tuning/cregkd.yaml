@@ -1,0 +1,9 @@
+# Tuning grid (STEWARD D-007, concretised in D-038). Keys "protocol.*" go to train.py --pset, others to --set.
+# The first value of every key is the current default (config 0 = all defaults). Cartesian product in file order.
+# Validation only (seed 0). Select by primary-role MAE independently within each outer fold.
+method: cregkd
+config: null                  # null -> configs/baselines/cregkd.yaml
+grid:
+  protocol.training.lr: [1.0e-4, 1.0e-3]
+  kd.lambda_2: [0.8, 0.4]
+  gate.eta: [1.0, 0.5]

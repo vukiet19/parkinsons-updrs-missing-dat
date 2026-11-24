@@ -1,0 +1,34 @@
+# ShaSpec-specific hyperparameters only (protocol values live in configs/protocol.yaml).
+# Status: adapted official code (billhhh/ShaSpec @ 57a04fa, BraTS segmentation only; no licence file).
+# Kx = row of the paper-code table in notes/SHASPEC_code_audit.md section 3.
+
+method: shaspec
+
+mode: full                  # full | student_only (same backbone/fusion/head, MRI only, task loss only)
+
+fusion:
+  type: linear              # K5: linear = f_proj Linear(2C->C) on GAP vectors [Paper Sec. 3.1 + 4.2 classification]
+                            #     conv   = 3x3 conv on last-stage maps, DAO on maps [Code DualNet_SS.py:319] (sensitivity)
+  bias: false               # K5: code conv has bias=False (DualNet_SS.py:319 via conv3x3x3 default)
+
+missing_feature: mean_shared  # K1: Eq. 4 mean of available shared features [Paper] | first_available [Code :411]
+                              #     identical for N = 2 modalities (one modality left when the other is missing)
+
+aux_on_missing: false       # K2: DAO/DCO of missing modalities omitted [Paper Sec. 3.3.3]
+                            #     true = zero-filled missing modality enters encoders + losses [Code; issue #4] (A)
+
+loss:                       # Eq. 9
+  alpha: 0.1                # DAO weight [Paper Sec. 4.2; Code train_SS.py:25]
+  beta: 0.02                # DCO weight [Paper Sec. 4.2; Code train_SS.py:26]
+  dao: l1                   # K3: L1 [Paper Sec. 4.2 / Table 4; Code train_SS.py:250] | mse (Table 4 alternative)
+
+warmup:
+  enabled: true             # K7: all-modality warm-up stage before random dropping [Code run.sh; README; issue #7]
+                            #     false = random dropping from the start (paper text only) (sensitivity)
+
+drop:                       # K8: per-sample modality availability in stage "main"
+  mode: random_subset       #   random_subset: k ~ U{1..#present}, random k-subset [Code DualNet_SS.py:378-386]
+                            #   keep_mri: MRI always, DaT dropped with prob p_dat [Proposal; AV-MNIST-like]
+                            #   dedicated: DaT always dropped (Table 2 "dedicated training") [Paper]
+                            #   none: only naturally missing DaT
+  p_dat: 0.5                # used by keep_mri only [Assumption]

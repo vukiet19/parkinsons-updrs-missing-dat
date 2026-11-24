@@ -1,0 +1,12 @@
+# OFF30 summary template. Confirm the approved cohort size when publishing the manifest.
+output: runs_ppmi/off30/summary
+protocol: configs/protocol_ppmi.yaml
+entries:
+  - {name: MRI-only, method: mri_only, run_dir: runs_ppmi/off30/mri_only, role: student}
+  - {name: Vanilla KD†, method: kd_basic, run_dir: runs_ppmi/off30/kd_basic, role: student}
+  - {name: CRAD†, method: crad, run_dir: runs_ppmi/off30/crad, role: student}
+  - {name: CReg-KD†, method: cregkd, run_dir: runs_ppmi/off30/cregkd, role: student}
+  - {name: DFTD†, method: dftd, run_dir: runs_ppmi/off30/dftd, role: student}
+  - {name: AGMD†, method: agmd, run_dir: runs_ppmi/off30/agmd, role: student}
+  - {name: ShaSpec†, method: shaspec, run_dir: runs_ppmi/off30/shaspec, role: student}
+  - {name: MRI+DaT reference, method: mm_teacher, run_dir: runs_ppmi/off30/mm_teacher, role: teacher}

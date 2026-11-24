@@ -1,0 +1,10 @@
+# OFF30 comparison family. Run once matched test predictions exist for the approved cohort and seeds.
+name: primary_ppmi_off30
+split: test
+pairs:
+  - {a: runs_ppmi/off30/crad, role_a: student, b: runs_ppmi/off30/mri_only, role_b: student}
+  - {a: runs_ppmi/off30/dftd, role_a: student, b: runs_ppmi/off30/mri_only, role_b: student}
+  - {a: runs_ppmi/off30/cregkd, role_a: student, b: runs_ppmi/off30/mri_only, role_b: student}
+  - {a: runs_ppmi/off30/agmd, role_a: student, b: runs_ppmi/off30/mri_only, role_b: student}
+  - {a: runs_ppmi/off30/shaspec, role_a: student, b: runs_ppmi/off30/mri_only, role_b: student}
+  - {a: runs_ppmi/off30/kd_basic, role_a: student, b: runs_ppmi/off30/mri_only, role_b: student}   # D-041

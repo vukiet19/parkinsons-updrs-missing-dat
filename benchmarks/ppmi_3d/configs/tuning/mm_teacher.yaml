@@ -1,0 +1,10 @@
+# Tuning grid (STEWARD D-007, concretised in D-038). Keys "protocol.*" go to train.py --pset, others to --set.
+# The first value of every key is the current default (config 0 = all defaults). Cartesian product in file order.
+# Validation only (seed 0). Select by primary-role MAE independently within each outer fold.
+# Common anchor (D-005): no method hyperparameters, so lr x weight_decay only -> 4 configurations.
+method: mm_teacher
+budget: 4                     # anchors: 4 configurations instead of protocol.training.tuning_budget (8)
+config: null
+grid:
+  protocol.training.lr: [1.0e-4, 1.0e-3]
+  protocol.training.weight_decay: [0.0, 1.0e-4]

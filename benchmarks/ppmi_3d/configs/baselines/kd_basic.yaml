@@ -1,0 +1,20 @@
+# kd_basic-specific hyperparameters only (protocol values live in configs/protocol*.yaml).
+# Anchor based on Hinton et al. 2015 (arXiv:1503.02531) and Romero et al. 2015 (FitNets, ICLR),
+# adapted to regression. Design: STEWARD D-041; notes/KDBASIC_adaptation.md. Tags: [Paper] [Code] [Proposal] [Assumption].
+
+method: kd_basic           # Registry key for the anchor defined in D-010 / D-041.
+
+teacher: null              # D-041: mm_teacher architecture and no method options. train.py:63 compares
+                           # absent anchor config keys as None, so null allows matching --teacher_from runs.
+
+kd:
+  enabled: true            # D-041: false runs the MRI-only student with task loss and skips the teacher stage.
+  lambda_out: 1.0          # output-KD weight [Proposal D-041; Hinton alpha analogue]  tune {1.0, 0.5}
+  lambda_hint: 1.0         # hint weight [Proposal D-041; RepDistiller beta analogue, train_student.py:75] tune {1.0, 0.1}
+  hint_layers: [2]         # 0-indexed encoder stages [Paper FitNets Sec. 2.2 "middle layer"; Proposal D-041; RepDistiller default 2,
+                           # train_student.py:88]; sens_hint_last = [3], sens_hint_all = [0, 1, 2, 3] (losses summed)
+  hint_warmup_epochs: 0    # D-041: 0 = joint student loss [RepDistiller helper/loops.py:184]. N > 0 = hint-only
+                           # for the first N epochs [FitNets Sec. 2.3]; sens_fitnets_two_stage uses 30.
+
+student:                   # D-041: MRI-only input with optional paired supervision during training.
+  train_on_samples_without_dat: true   # D-041: retain unpaired rows for task loss in the full-loss phase.
